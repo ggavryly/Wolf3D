@@ -21,43 +21,17 @@ void	draw_vertical(int x, t_calc *calc, t_wlf *wlf)
 	b = 0;
 	while (i < WIN_H)
 	{
-		if (i >= calc->draw[START] && i <= calc->draw[END])
+		if (i <= calc->draw[START])
+			wlf->buffer[i * WIN_W + x] = BLACK;
+		else if (i >= calc->draw[START] && i <= calc->draw[END])
 			wlf->buffer[i * WIN_W + x] = calc->color;
 		else
 		{
-			wlf->buffer[i * WIN_W + x] = BLACK;
+			wlf->buffer[i * WIN_W + x] = GREY;
 			b++;
 		}
 		i++;
 	}
-}
-
-static int	ver_line(int x, int y1, int y2, t_wlf *w)
-{
-	int y;
-
-	if (y2 < y1)
-	{
-		y1 += y2;
-		y2 = y1 - y2;
-		y1 -= y2;
-	}
-	if (y2 < 0 || y1 >= WIN_H || x < 0 || x >= WIN_W)
-		return (0);
-	if (y1 < 0)
-		y1 = 0;
-	if (y2 >= WIN_W)
-		y2 = WIN_H - 1;
-	w->buffer = (int *)mlx_get_data_addr(w->img, &w->tmp[0], &w->tmp[1], &w->tmp[3]);
-	w->buffer += y1 * WIN_W + x;
-	y = y1;
-	while (y <= y2)
-	{
-		*w->buffer = w->calc->color;
-		w->buffer += WIN_W;
-		y++;
-	}
-	return (1);
 }
 
 void 	draw(t_wlf *wlf, t_calc *calc)
@@ -67,11 +41,11 @@ void 	draw(t_wlf *wlf, t_calc *calc)
 	{
 		//calculate ray position and direction
 		calc->camera_x = 2 * x / (double)(WIN_W) - 1; //x-coordinate in camera space
-		calc->ray_dir[X] = wlf->player_dir[X] + wlf->plane_camera[X] * calc->camera_x;
-		calc->ray_dir[Y] = wlf->player_dir[Y] + wlf->plane_camera[Y] * calc->camera_x;
+		calc->ray_dir[X] = wlf->dir[X] + wlf->plane[X] * calc->camera_x;
+		calc->ray_dir[Y] = wlf->dir[Y] + wlf->plane[Y] * calc->camera_x;
 		//which box of the map we're in
-		calc->map_xy[X] = (int)(wlf->player_pos[X]);
-		calc->map_xy[Y] = (int)(wlf->player_pos[Y]);
+		calc->map[X] = (int)(wlf->pos[X]);
+		calc->map[Y] = (int)(wlf->pos[Y]);
 
 		//length of ray from current position to next x or y-side
 		calc->side_dist[X] = 0;
@@ -92,22 +66,22 @@ void 	draw(t_wlf *wlf, t_calc *calc)
 		if (calc->ray_dir[X] < 0)
 		{
 			calc->step[X] = -1;
-			calc->side_dist[X] = (wlf->player_pos[X] - calc->map_xy[X]) * calc->delta_dist[X];
+			calc->side_dist[X] = (wlf->pos[X] - calc->map[X]) * calc->delta_dist[X];
 		}
 		else
 		{
 			calc->step[X] = 1;
-			calc->side_dist[X] = (calc->map_xy[X] + 1.0 - wlf->player_pos[X]) * calc->delta_dist[X];
+			calc->side_dist[X] = (calc->map[X] + 1.0 - wlf->pos[X]) * calc->delta_dist[X];
 		}
 		if (calc->ray_dir[Y] < 0)
 		{
 			calc->step[Y] = -1;
-			calc->side_dist[Y] = (wlf->player_pos[Y] - calc->map_xy[Y]) * calc->delta_dist[Y];
+			calc->side_dist[Y] = (wlf->pos[Y] - calc->map[Y]) * calc->delta_dist[Y];
 		}
 		else
 		{
 			calc->step[Y] = 1;
-			calc->side_dist[Y] = (calc->map_xy[Y] + 1.0 - wlf->player_pos[Y]) * calc->delta_dist[Y];
+			calc->side_dist[Y] = (calc->map[Y] + 1.0 - wlf->pos[Y]) * calc->delta_dist[Y];
 		}
 		//perform DDA
 		while (calc->hit == 0)
@@ -115,25 +89,25 @@ void 	draw(t_wlf *wlf, t_calc *calc)
 			//jump to next map square, OR in x-direction, OR in y-direction
 			if (calc->side_dist[X] < calc->side_dist[Y])
 			{
-				calc->side_dist[X] += calc->delta_dist[Y];
-				calc->map_xy[X] += calc->step[X];
+				calc->side_dist[X] += calc->delta_dist[X];
+				calc->map[X] += calc->step[X];
 				calc->side = 0;
 			}
 			else
 			{
 				calc->side_dist[Y] +=  calc->delta_dist[Y];
-				calc->map_xy[Y] += calc->step[Y];
+				calc->map[Y] += calc->step[Y];
 				calc->side = 1;
 			}
 			//Check if ray has hit a wall
-			if (worldMap[calc->map_xy[X]][calc->map_xy[Y]] > 0)
+			if (worldMap[calc->map[X]][calc->map[Y]] > 0)
 				calc->hit = 1;
 		}
 		//Calculate distance projected on camera direction (Euclidean distance will give fisheye effect!)
 		if (calc->side == 0)
-			calc->perpwalldist = (calc->map_xy[X]- wlf->player_pos[X] + (double )(1 - calc->step[X]) / 2) / calc->ray_dir[X];
+			calc->perpwalldist = (calc->map[X]- wlf->pos[X] + (double )(1 - calc->step[X]) / 2) / calc->ray_dir[X];
 		else
-			calc->perpwalldist = (calc->map_xy[Y] - wlf->player_pos[Y] + (double)(1 - calc->step[Y]) / 2) / calc->ray_dir[Y];
+			calc->perpwalldist = (calc->map[Y] - wlf->pos[Y] + (double)(1 - calc->step[Y]) / 2) / calc->ray_dir[Y];
 
 		//Calculate height of line to draw on screen
 		calc->line_h = (int)(WIN_H / calc->perpwalldist);
@@ -146,24 +120,25 @@ void 	draw(t_wlf *wlf, t_calc *calc)
 		if (calc->draw[END] >= WIN_H)
 			calc->draw[END] = WIN_H - 1;
 
+
+
+		//texturing calculations
+
 		//choose wall color
-		if (worldMap[calc->map_xy[X]][calc->map_xy[Y]] == 1)
+		if (worldMap[calc->map[X]][calc->map[Y]] == 1)
 			calc->color = RED;
-		else if (worldMap[calc->map_xy[X]][calc->map_xy[Y]] == 2)
+		else if (worldMap[calc->map[X]][calc->map[Y]] == 2)
 			calc->color = GREEN;
-		else if (worldMap[calc->map_xy[X]][calc->map_xy[Y]] == 3)
+		else if (worldMap[calc->map[X]][calc->map[Y]] == 3)
 			calc->color = BLUE;
-		else if (worldMap[calc->map_xy[X]][calc->map_xy[Y]] == 4)
+		else if (worldMap[calc->map[X]][calc->map[Y]] == 4)
 			calc->color = WHITE;
 		else
 			calc->color = YELLOW;
 		//give x and y sides different brightness
 		if (calc->side == 1)
 			calc->color = calc->color / 2;
-
-		//draw the pixels of the stripe as a vertical line
-//		draw_vertical(x, calc, wlf);
-		draw_vertical(x, calc ,wlf);
+		draw_vertical(x, calc, wlf);
 	}
 	//timing for input and FPS counter
 	wlf->oldTime = wlf->time;
@@ -172,7 +147,7 @@ void 	draw(t_wlf *wlf, t_calc *calc)
 	// FPS counter
 
 	//speed modifiers
-	calc->move_speed = 0.03; //the constant value is in squares/second
-	calc->rot_speed = 0.03; //the constant value is in radians/second
+	calc->move_speed = 0.10; //the constant value is in squares/second
+	calc->rot_speed = 0.10; //the constant value is in radians/second
 	mlx_put_image_to_window(wlf->mlx, wlf->win, wlf->img, 0, 0);
 }

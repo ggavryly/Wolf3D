@@ -25,6 +25,8 @@
 # define WIN_W		1000
 # define MAP_W		24
 # define MAP_H		24
+# define TEXT_W		64
+# define TEXT_H		64
 # define KEY_UP		126
 # define KEY_DOWN	125
 # define KEY_LEFT	123
@@ -33,7 +35,6 @@
 # define KEY_A		0
 # define KEY_S		1
 # define KEY_D		2
-# define mapWidth	24
 # define START 0
 # define END 1
 # define RED		0xFF0000
@@ -41,8 +42,8 @@
 # define BLUE		0x0000FF
 # define WHITE		0xFFFFFF
 # define YELLOW		0xFF00FF
+# define GREY		0xD3D3D3
 # define BLACK		0x000000
-# define mapHeight	24
 
 int worldMap[MAP_W][MAP_H];
 
@@ -58,7 +59,7 @@ typedef struct	s_calc
 	double		frame_time;
 	double		old_dir;
 	double		old_plane;
-	int			map_xy[2];
+	int			map[2];
 	int 		step[2];
 	int 		hit;
 	int 		side;
@@ -72,9 +73,9 @@ typedef struct	s_wlf
 	void		*mlx;
 	void		*win;
 	void		*img;
-	double		player_pos[2];
-	double		player_dir[2];
-	double		plane_camera[2];
+	double		pos[2];
+	double		dir[2];
+	double		plane[2];
 	double		time;
 	double		oldTime;
 	int 		*buffer;
