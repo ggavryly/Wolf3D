@@ -18,11 +18,12 @@
 # include <stdio.h>
 # include <string.h>
 # include <time.h>
+# include <errno.h>
 # define abs(x) ((x)<0 ? (-x) : (x));
 # define X 0
 # define Y 1
-# define WIN_H		1000
-# define WIN_W		1000
+# define WIN_H		768
+# define WIN_W		1280
 # define MAP_W		24
 # define MAP_H		24
 # define TEXT_W		64
@@ -31,12 +32,13 @@
 # define KEY_DOWN	125
 # define KEY_LEFT	123
 # define KEY_RIGHT	124
+# define SHIFT		56
 # define KEY_W		13
 # define KEY_A		0
 # define KEY_S		1
 # define KEY_D		2
-# define START 0
-# define END 1
+# define START		0
+# define END		1
 # define RED		0xFF0000
 # define GREEN		0x00FF00
 # define BLUE		0x0000FF
@@ -45,7 +47,11 @@
 # define GREY		0xD3D3D3
 # define BLACK		0x000000
 
-int worldMap[MAP_W][MAP_H];
+typedef struct	s_tex
+{
+	void	*img;
+	int 	*texture;
+}				t_tex;
 
 typedef struct	s_calc
 {
@@ -66,6 +72,8 @@ typedef struct	s_calc
 	int 		line_h;
 	int 		draw[2];
 	int 		color;
+	int 		text_mode;
+	int 		text_select;
 }				t_calc;
 
 typedef struct	s_wlf
@@ -80,12 +88,18 @@ typedef struct	s_wlf
 	double		oldTime;
 	int 		*buffer;
 	int			**wolf_map;
+	int			map_size[2];
 	int 		tmp[3];
 	t_calc		*calc;
+	t_tex		*textures;
 }				t_wlf;
 
+void	init_textures(t_wlf *wlf);
+void	read_map(t_wlf *wlf, char **av, int ar);
+int		exit_wlf(int code);
 int 	key_event(int key, t_wlf *wlf);
-void	draw(t_wlf *wlf, t_calc *calc);
+int		draw(t_wlf *wlf);
+void	draw_vertical(int x, t_calc *calc, t_wlf *wlf, t_tex tex);
 void	init_data(t_wlf *wlf, t_calc *calc);
 
 #endif
