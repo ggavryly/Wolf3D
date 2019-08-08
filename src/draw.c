@@ -12,49 +12,40 @@
 
 #include "wolf3d.h"
 
-void	choose_sector(t_wlf *wlf, t_calc *calc)
+void	choose_sector(t_wlf *wlf, t_calc *cl)
 {
-	if (calc->ray_dir[X] < 0)
+	if (cl->ray_dir[X] < 0)
 	{
-		calc->step[X] = -1;
-		calc->side_dist[X] = (wlf->pos[X] - calc->map[X]) * calc->delta_dist[X];
+		cl->step[X] = -1;
+		cl->side_dist[X] = (wlf->pos[X] - cl->map[X]) * cl->delta_dist[X];
 	}
 	else
 	{
-		calc->step[X] = 1;
-		calc->side_dist[X] = (calc->map[X] + 1.0 - wlf->pos[X]) * calc->delta_dist[X];
+		cl->step[X] = 1;
+		cl->side_dist[X] = (cl->map[X] + 1.0 - wlf->pos[X]) * cl->delta_dist[X];
 	}
-	if (calc->ray_dir[Y] < 0)
-	{
-		calc->step[Y] = -1;
-		calc->side_dist[Y] = (wlf->pos[Y] - calc->map[Y]) * calc->delta_dist[Y];
-	}
-	else
-	{
-		calc->step[Y] = 1;
-		calc->side_dist[Y] = (calc->map[Y] + 1.0 - wlf->pos[Y]) * calc->delta_dist[Y];
-	}
+	choose_sector_y(wlf, cl);
 }
 
-void	choose_color(t_wlf *wlf, t_calc *calc)
+void	choose_color(t_calc *calc, t_wlf *wlf)
 {
-	calc->line_h = (int)(WIN_H / calc->perpwalldist);
+	calc->line_h = (int)(WIN_H / calc->perl);
 	calc->draw[START] = -calc->line_h / 2 + WIN_H / 2;
 	if (calc->draw[START] < 0)
 		calc->draw[START] = 0;
 	calc->draw[END] = calc->line_h / 2 + WIN_H / 2;
 	if (calc->draw[END] >= WIN_H)
 		calc->draw[END] = WIN_H - 1;
-	calc->text_mode = (calc->text_select) ? (4) : (0);
-	if (((calc->ray_dir[X] < 0 && calc->ray_dir[Y]< 0)
-		 || (calc->ray_dir[X] >= 0 && calc->ray_dir[Y]< 0)) && calc->side == 1)
-		calc->text_mode = (calc->text_select) ? (5) : (1);
-	if (((calc->ray_dir[X] < 0 && calc->ray_dir[Y]>= 0)
-		 || (calc->ray_dir[X] >= 0 && calc->ray_dir[Y]>= 0)) && calc->side == 1)
-		calc->text_mode = (calc->text_select) ? (6) : (2);
-	if (((calc->ray_dir[X] >= 0 && calc->ray_dir[Y]< 0)
-		 || (calc->ray_dir[X] >= 0 && calc->ray_dir[Y]>= 0)) && calc->side == 0)
-		calc->text_mode =(calc->text_select) ? (7) : (3);
+	calc->text_mode = (wlf->keys.t) ? (4) : (0);
+	if (((calc->ray_dir[X] < 0 && calc->ray_dir[Y] < 0)
+	|| (calc->ray_dir[X] >= 0 && calc->ray_dir[Y] < 0)) && calc->side == 1)
+		calc->text_mode = (wlf->keys.t) ? (5) : (1);
+	if (((calc->ray_dir[X] < 0 && calc->ray_dir[Y] >= 0)
+	|| (calc->ray_dir[X] >= 0 && calc->ray_dir[Y] >= 0)) && calc->side == 1)
+		calc->text_mode = (wlf->keys.t) ? (6) : (2);
+	if (((calc->ray_dir[X] >= 0 && calc->ray_dir[Y] < 0)
+	|| (calc->ray_dir[X] >= 0 && calc->ray_dir[Y] >= 0)) && calc->side == 0)
+		calc->text_mode = (wlf->keys.t) ? (7) : (3);
 }
 
 void	pre_calc(t_wlf *wlf, t_calc *calc, int x)
@@ -68,7 +59,7 @@ void	pre_calc(t_wlf *wlf, t_calc *calc, int x)
 	calc->side_dist[Y] = 0;
 	calc->delta_dist[X] = fabs(1 / calc->ray_dir[X]);
 	calc->delta_dist[Y] = fabs(1 / calc->ray_dir[Y]);
-	calc->perpwalldist = 0;
+	calc->perl = 0;
 	calc->step[X] = 0;
 	calc->step[Y] = 0;
 	calc->hit = 0;
@@ -87,7 +78,7 @@ void	ray_run(t_wlf *wlf, t_calc *calc)
 		}
 		else
 		{
-			calc->side_dist[Y] +=  calc->delta_dist[Y];
+			calc->side_dist[Y] += calc->delta_dist[Y];
 			calc->map[Y] += calc->step[Y];
 			calc->side = 1;
 		}
@@ -96,33 +87,26 @@ void	ray_run(t_wlf *wlf, t_calc *calc)
 	}
 }
 
-int		draw(t_wlf *wlf)
+int		draw(t_wlf *w)
 {
 	int		x;
 
 	x = 0;
-	while(x < WIN_W)
+	while (x < WIN_W)
 	{
-		pre_calc(wlf, wlf->calc, x);
-		choose_sector(wlf, wlf->calc);
-		ray_run(wlf, wlf->calc);
-		if (wlf->calc->side == 0)
-			wlf->calc->perpwalldist = (wlf->calc->map[X]- wlf->pos[X] + (double )(1 - wlf->calc->step[X]) / 2) / wlf->calc->ray_dir[X];
+		pre_calc(w, w->calc, x);
+		choose_sector(w, w->calc);
+		ray_run(w, w->calc);
+		if (w->calc->side == 0)
+			w->calc->perl = (w->calc->map[X] - w->pos[X] +
+					(double)(1 - w->calc->step[X]) / 2) / w->calc->ray_dir[X];
 		else
-			wlf->calc->perpwalldist = (wlf->calc->map[Y] - wlf->pos[Y] + (double)(1 - wlf->calc->step[Y]) / 2) / wlf->calc->ray_dir[Y];
-		choose_color(wlf, wlf->calc);
-		draw_vertical(x, wlf->calc, wlf, wlf->textures[wlf->calc->text_mode]);
+			w->calc->perl = (w->calc->map[Y] - w->pos[Y] +
+					(double)(1 - w->calc->step[Y]) / 2) / w->calc->ray_dir[Y];
+		choose_color(w->calc, w);
+		draw_vertical(x, w->calc, w, w->textures[w->calc->text_mode]);
 		x++;
 	}
-	wlf->oldTime = wlf->time;
-	wlf->time = clock();
-	wlf->calc->frame_time = (wlf->time - wlf->oldTime) / 100.0;
-	wlf->calc->move_speed = 0.10;
-	wlf->calc->rot_speed = 0.05;
-	mlx_put_image_to_window(wlf->mlx, wlf->win, wlf->img, 0, 0);
-	mlx_string_put(wlf->mlx, wlf->win, 5, 5, 0x000000, "FPS: ");
-	char *str = ft_itoa((int)wlf->calc->frame_time);
-	mlx_string_put(wlf->mlx, wlf->win, 50, 5, 0x000000, str);
-	free(str);
+	fps_counter(w);
 	return (0);
 }
