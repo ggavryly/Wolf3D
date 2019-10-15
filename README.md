@@ -22,4 +22,4 @@ right out of the box. Spawn position is the 'P' on the map.
 1 1 1 1 1
 ```
 ## Preview:
- ![](https://gph.is/g/amANr9X)
+ ![](wolf3d_demo.gif)
